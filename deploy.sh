@@ -11,7 +11,7 @@ if [ -z "$REMOTE" ]; then
     echo "Done. App available at http://localhost"
 else
     echo "Deploying to $REMOTE..."
-    ssh "$REMOTE" "mkdir -p '$REMOTE_DIR'"
+    ssh "$REMOTE" "mkdir -p '$REMOTE_DIR' '$REMOTE_DIR/data'"
     rsync -az \
         --exclude='.git/' \
         --exclude='data/' \
@@ -20,5 +20,5 @@ else
         --exclude='frontend/dist/' \
         . "$REMOTE:$REMOTE_DIR"
     ssh "$REMOTE" "cd '$REMOTE_DIR' && docker compose build && docker compose up -d"
-    echo "Done. App available at http://$REMOTE"
+    echo "Done. App available at http://${REMOTE#*@}"
 fi
