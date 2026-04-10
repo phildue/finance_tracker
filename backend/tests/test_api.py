@@ -1,7 +1,6 @@
 import pytest
 from decimal import Decimal
 from datetime import date
-from uuid import uuid4
 from domain.expense import Expense
 from adapters.sqlite_repository import SqliteExpenseRepository
 from fastapi import FastAPI

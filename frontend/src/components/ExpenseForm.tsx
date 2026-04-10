@@ -26,6 +26,7 @@ export function ExpenseForm({ onExpenseAdded }: Props) {
         description: description || undefined,
       })
       setAmount('')
+      setCurrency('EUR')
       setCategory('')
       setDate('')
       setDescription('')
