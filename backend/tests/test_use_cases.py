@@ -2,6 +2,8 @@ from datetime import date
 from decimal import Decimal
 import pytest
 from domain.expense import Expense
+from domain.ports import ExpenseRepository
+from domain.use_cases import AddExpense, ListExpenses
 
 
 def test_expense_stores_fields():
@@ -35,3 +37,61 @@ def test_expense_is_immutable():
     )
     with pytest.raises(Exception):
         expense.amount = Decimal("99")
+
+
+class FakeExpenseRepository(ExpenseRepository):
+    def __init__(self) -> None:
+        self._expenses: list[Expense] = []
+
+    def save(self, expense: Expense) -> None:
+        self._expenses.append(expense)
+
+    def list_all(self) -> list[Expense]:
+        return list(self._expenses)
+
+
+def test_add_expense_returns_saved_expense():
+    repo = FakeExpenseRepository()
+    use_case = AddExpense(repo)
+
+    result = use_case.execute(
+        amount=Decimal("15.00"),
+        currency="EUR",
+        category="transport",
+        date=date(2026, 4, 11),
+    )
+
+    assert result.amount == Decimal("15.00")
+    assert result.currency == "EUR"
+    assert len(repo.list_all()) == 1
+
+
+def test_add_expense_with_optional_description():
+    repo = FakeExpenseRepository()
+    result = AddExpense(repo).execute(
+        amount=Decimal("5"),
+        currency="USD",
+        category="coffee",
+        date=date(2026, 4, 11),
+        description="flat white",
+    )
+    assert result.description == "flat white"
+
+
+def test_list_expenses_returns_sorted_by_date_descending():
+    repo = FakeExpenseRepository()
+    add = AddExpense(repo)
+    add.execute(Decimal("10"), "EUR", "food", date(2026, 4, 1))
+    add.execute(Decimal("20"), "EUR", "transport", date(2026, 4, 11))
+    add.execute(Decimal("5"), "EUR", "coffee", date(2026, 4, 5))
+
+    result = ListExpenses(repo).execute()
+
+    assert result[0].date == date(2026, 4, 11)
+    assert result[1].date == date(2026, 4, 5)
+    assert result[2].date == date(2026, 4, 1)
+
+
+def test_list_expenses_returns_empty_when_no_expenses():
+    repo = FakeExpenseRepository()
+    assert ListExpenses(repo).execute() == []
