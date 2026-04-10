@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 
 from adapters.sqlite_repository import SqliteExpenseRepository
@@ -6,5 +8,6 @@ from domain.use_cases import AddExpense, ListExpenses
 
 app = FastAPI(title="Finance Tracker")
 
-_repo = SqliteExpenseRepository("expenses.db")
+_db_path = os.environ.get("DB_PATH", "expenses.db")
+_repo = SqliteExpenseRepository(_db_path)
 app.include_router(build_router(AddExpense(_repo), ListExpenses(_repo)))
