@@ -46,3 +46,21 @@ Domain tests (`test_use_cases.py`) use `FakeExpenseRepository` — no SQLite, no
 - `amount` is always `Decimal`, never `float`; stored as `TEXT` in SQLite
 - Sorting of expenses by date is the use case's responsibility, not the repository's
 - TypeScript uses `verbatimModuleSyntax` — use `import type` for type-only imports
+
+## Deployment
+
+**Local:**
+```bash
+./deploy.sh
+```
+
+**Remote (SSH):**
+```bash
+./deploy.sh user@hostname
+```
+
+The script builds Docker images from the current directory (no git pull) and starts the stack with `docker compose up -d`. On remote deployments, rsync copies the source to `/opt/finance_tracker` on the target — the `data/` directory (SQLite database) is excluded from rsync so it persists between deploys.
+
+The app is served on port 80. The `data/` directory (holding `expenses.db`) is pre-created via `data/.gitkeep` and will be populated on first run.
+
+**Prerequisites on the target machine:** Docker engine + Docker Compose plugin (`sudo apt-get install docker-compose-plugin`).
