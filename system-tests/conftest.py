@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-API_URL = "http://localhost:8000"
+API_URL = "http://localhost:80"
 UI_URL = "http://localhost:80"
 
 
