@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    image: ghcr.io/phildue/finance_tracker/backend:${IMAGE_TAG:-local}
     user: "1000:1000"
     environment:
       - DB_PATH=/data/expenses.db
@@ -14,6 +15,7 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+    image: ghcr.io/phildue/finance_tracker/frontend:${IMAGE_TAG:-local}
     ports:
       - "80:80"
     depends_on:
