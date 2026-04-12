@@ -13,12 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-
       - name: Sync source to target
         run: |
           rsync -az \
@@ -36,7 +30,3 @@ jobs:
               -o StrictHostKeyChecking=accept-new \
               "${{ secrets.DEPLOY_TARGET }}" \
               "cd /opt/finance_tracker && docker compose build && docker compose up -d"
-
-      - name: Clean up SSH key
-        if: always()
-        run: rm -f ~/.ssh/deploy_key

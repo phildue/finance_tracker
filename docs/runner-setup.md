@@ -53,6 +53,8 @@ The runner now starts automatically on boot and appears as online in GitHub.
 
 ## 4. SSH key for deployment
 
+The private key lives on the runner machine — it never needs to leave the local network.
+
 Generate a key pair on the runner machine:
 
 ```bash
@@ -65,15 +67,12 @@ Copy the public key to the deployment target VM:
 ssh-copy-id -i ~/.ssh/deploy_key.pub user@<deployment-vm-ip>
 ```
 
-Add the private key as a GitHub Actions secret:
+The deploy workflow references `~/.ssh/deploy_key` directly. No GitHub secret needed for the key.
 
-1. Copy the private key contents: `cat ~/.ssh/deploy_key`
-2. GitHub repo → **Settings → Secrets and variables → Actions → New repository secret**
-3. Name: `DEPLOY_SSH_KEY`, value: paste the private key
+Add only the deployment target as a GitHub Actions secret:
 
-Add the deployment target as a secret:
-
-- Name: `DEPLOY_TARGET`, value: `user@<deployment-vm-ip>` (e.g. `ubuntu@192.168.1.50`)
+1. GitHub repo → **Settings → Secrets and variables → Actions → New repository secret**
+2. Name: `DEPLOY_TARGET`, value: `user@<deployment-vm-ip>` (e.g. `ubuntu@192.168.1.50`)
 
 ## 5. Deployment target prerequisites
 
