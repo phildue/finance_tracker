@@ -1,0 +1,52 @@
+name: Build and Deploy Test
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      sha: ${{ steps.sha.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute short SHA
+        id: sha
+        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push backend
+        run: |
+          docker build \
+            -t ghcr.io/phildue/finance_tracker/backend:sha-${{ steps.sha.outputs.sha }} \
+            -t ghcr.io/phildue/finance_tracker/backend:test \
+            -f backend/Dockerfile .
+          docker push ghcr.io/phildue/finance_tracker/backend:sha-${{ steps.sha.outputs.sha }}
+          docker push ghcr.io/phildue/finance_tracker/backend:test
+
+      - name: Build and push frontend
+        run: |
+          docker build \
+            -t ghcr.io/phildue/finance_tracker/frontend:sha-${{ steps.sha.outputs.sha }} \
+            -t ghcr.io/phildue/finance_tracker/frontend:test \
+            -f frontend/Dockerfile .
+          docker push ghcr.io/phildue/finance_tracker/frontend:sha-${{ steps.sha.outputs.sha }}
+          docker push ghcr.io/phildue/finance_tracker/frontend:test
+
+  deploy-test:
+    runs-on: self-hosted
+    needs: build
+    steps:
+      - name: Deploy to test
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=accept-new \
+              "${{ secrets.DEPLOY_TEST_TARGET }}" \
+              "cd /opt/finance_tracker && export IMAGE_TAG=sha-${{ needs.build.outputs.sha }} && docker compose pull && docker compose up -d"
