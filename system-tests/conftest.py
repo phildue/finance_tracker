@@ -30,14 +30,14 @@ def docker_stack():
             pass
         time.sleep(1)
     else:
-        subprocess.run(["docker", "compose", "down"], cwd=REPO_ROOT)
+        subprocess.run(["docker", "compose", "down"], cwd=REPO_ROOT, check=False)
         raise RuntimeError("Stack did not become healthy within 60s")
     yield
     subprocess.run(["docker", "compose", "down"], cwd=REPO_ROOT, check=True)
 
 
 @pytest.fixture(scope="session")
-def api_url():
+def base_url():
     return API_URL
 
 
