@@ -110,3 +110,9 @@ def test_post_expense_rejects_negative_amount(client):
         json={"amount": "-1", "currency": "EUR", "category": "food", "date": "2026-04-11"},
     )
     assert response.status_code == 422
+
+
+def test_health_returns_ok(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}

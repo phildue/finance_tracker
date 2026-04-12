@@ -63,4 +63,8 @@ def build_router(add_expense: AddExpense, list_expenses: ListExpenses) -> APIRou
     def get_expenses() -> list[ExpenseResponse]:
         return [_to_response(e) for e in list_expenses.execute()]
 
+    @router.get("/health")
+    def health() -> dict:
+        return {"status": "ok"}
+
     return router
