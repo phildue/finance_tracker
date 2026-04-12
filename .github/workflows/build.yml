@@ -68,7 +68,7 @@ jobs:
   deploy-test:
     runs-on: self-hosted
     needs: [build, system-test]
-    if: ${{ needs.build.result == 'success' }}
+    if: ${{ needs.build.result == 'success' && needs.system-test.result == 'success' }}
     steps:
       - name: Deploy to test
         run: |
