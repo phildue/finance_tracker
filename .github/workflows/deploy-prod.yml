@@ -34,7 +34,7 @@ jobs:
           docker buildx imagetools create \
             -t ghcr.io/phildue/finance_tracker/frontend:${{ github.event.release.tag_name }} \
             -t ghcr.io/phildue/finance_tracker/frontend:prod \
-            ghcr.io/phildue/finance_tracker/finance_tracker/frontend:sha-${{ steps.sha.outputs.sha }}
+            ghcr.io/phildue/finance_tracker/frontend:sha-${{ steps.sha.outputs.sha }}
 
   deploy:
     runs-on: self-hosted
