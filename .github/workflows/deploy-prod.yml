@@ -4,6 +4,10 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   retag:
     runs-on: ubuntu-latest
@@ -45,4 +49,4 @@ jobs:
           ssh -i ~/.ssh/deploy_key \
               -o StrictHostKeyChecking=accept-new \
               "${{ secrets.DEPLOY_PROD_TARGET }}" \
-              "cd /opt/finance_tracker && export IMAGE_TAG=${{ needs.retag.outputs.tag }} && docker compose pull && docker compose up -d"
+              "cd /opt/finance_tracker && echo IMAGE_TAG=${{ needs.retag.outputs.tag }} > .env && docker compose pull && docker compose up -d"

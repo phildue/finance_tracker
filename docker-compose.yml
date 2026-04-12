@@ -1,5 +1,8 @@
 services:
   backend:
+    # build: is used for local development (docker compose build).
+    # image: names the tag produced locally and the image pulled on deployment targets.
+    # On deployment VMs, IMAGE_TAG is set via .env — compose pulls from GHCR, never builds.
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -12,6 +15,9 @@ services:
     restart: unless-stopped
 
   frontend:
+    # build: is used for local development (docker compose build).
+    # image: names the tag produced locally and the image pulled on deployment targets.
+    # On deployment VMs, IMAGE_TAG is set via .env — compose pulls from GHCR, never builds.
     build:
       context: .
       dockerfile: frontend/Dockerfile

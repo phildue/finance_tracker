@@ -6,6 +6,10 @@ on:
     types: [completed]
     branches: [main]
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,7 +21,7 @@ jobs:
 
       - name: Compute short SHA
         id: sha
-        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: echo "sha=$(echo '${{ github.event.workflow_run.head_sha }}' | cut -c1-7)" >> $GITHUB_OUTPUT
 
       - name: Login to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -43,10 +47,11 @@ jobs:
   deploy-test:
     runs-on: self-hosted
     needs: build
+    if: ${{ needs.build.result == 'success' }}
     steps:
       - name: Deploy to test
         run: |
           ssh -i ~/.ssh/deploy_key \
               -o StrictHostKeyChecking=accept-new \
               "${{ secrets.DEPLOY_TEST_TARGET }}" \
-              "cd /opt/finance_tracker && export IMAGE_TAG=sha-${{ needs.build.outputs.sha }} && docker compose pull && docker compose up -d"
+              "cd /opt/finance_tracker && echo IMAGE_TAG=sha-${{ needs.build.outputs.sha }} > .env && docker compose pull && docker compose up -d"
