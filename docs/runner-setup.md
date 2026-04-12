@@ -61,20 +61,46 @@ Generate a key pair on the runner machine:
 ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -N ""
 ```
 
-Copy the public key to the deployment target VM:
+Copy the public key to **both** deployment VMs (test and prod):
 
 ```bash
-ssh-copy-id -i ~/.ssh/deploy_key.pub user@<deployment-vm-ip>
+ssh-copy-id -i ~/.ssh/deploy_key.pub user@<test-vm-ip>
+ssh-copy-id -i ~/.ssh/deploy_key.pub user@<prod-vm-ip>
 ```
 
-The deploy workflow references `~/.ssh/deploy_key` directly. No GitHub secret needed for the key.
+The deploy workflows reference `~/.ssh/deploy_key` directly. No GitHub secret needed for the key.
 
-Add only the deployment target as a GitHub Actions secret:
+Add two GitHub Actions secrets:
 
 1. GitHub repo → **Settings → Secrets and variables → Actions → New repository secret**
-2. Name: `DEPLOY_TARGET`, value: `user@<deployment-vm-ip>` (e.g. `ubuntu@192.168.1.50`)
+2. Name: `DEPLOY_TEST_TARGET`, value: `user@<test-vm-ip>` (e.g. `ubuntu@192.168.1.50`)
+3. Name: `DEPLOY_PROD_TARGET`, value: `user@<prod-vm-ip>` (e.g. `ubuntu@192.168.1.51`)
 
-## 5. Deployment target prerequisites
+The old `DEPLOY_TARGET` secret can be deleted.
+
+## 5. GHCR authentication on deployment VMs
+
+Both test and prod VMs must authenticate with GHCR once to pull images.
+
+On each VM:
+
+1. Create a GitHub Personal Access Token (classic) with `read:packages` scope:
+   GitHub → Settings → Developer settings → Personal access tokens (classic) → Generate new token
+
+2. Log in to GHCR:
+   ```bash
+   echo <PAT> | docker login ghcr.io -u phildue --password-stdin
+   ```
+
+3. Verify:
+   ```bash
+   cat ~/.docker/config.json | grep ghcr
+   ```
+   Expected: entry for `ghcr.io` present.
+
+Credentials are stored in `~/.docker/config.json` and persist across reboots.
+
+## 6. Deployment target prerequisites
 
 On the deployment VM (`DEPLOY_TARGET`):
 
