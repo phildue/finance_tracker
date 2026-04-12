@@ -60,6 +60,14 @@ jobs:
       - name: Login to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+      - name: Prepare data directory
+        run: chmod a+w data/
+
+      - name: Pull images
+        env:
+          IMAGE_TAG: sha-${{ needs.build.outputs.sha }}
+        run: docker compose pull
+
       - name: Run system tests
         env:
           IMAGE_TAG: sha-${{ needs.build.outputs.sha }}

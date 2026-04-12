@@ -11,6 +11,7 @@ def test_add_expense_via_form(page, ui_url):
 
 
 def test_form_rejects_empty_submission(page, ui_url):
+    """Verify HTML5 required attribute prevents form submission with empty required fields."""
     page.goto(ui_url)
     page.wait_for_load_state("networkidle")
     initial_row_count = page.locator("tbody tr").count()
