@@ -44,10 +44,39 @@ jobs:
           docker push ghcr.io/phildue/finance_tracker/frontend:sha-${{ steps.sha.outputs.sha }}
           docker push ghcr.io/phildue/finance_tracker/frontend:test
 
+  system-test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r system-tests/requirements.txt && playwright install --with-deps chromium
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Prepare data directory
+        run: chmod a+w data/
+
+      - name: Pull images
+        env:
+          IMAGE_TAG: sha-${{ needs.build.outputs.sha }}
+        run: docker compose pull
+
+      - name: Run system tests
+        env:
+          IMAGE_TAG: sha-${{ needs.build.outputs.sha }}
+        run: cd system-tests && pytest -v
+
   deploy-test:
     runs-on: self-hosted
-    needs: build
-    if: ${{ needs.build.result == 'success' }}
+    needs: [build, system-test]
+    if: ${{ needs.build.result == 'success' && needs.system-test.result == 'success' }}
     steps:
       - name: Deploy to test
         run: |

@@ -1,4 +1,6 @@
 *.pyc
+__pycache__/
+.pytest_cache/
 data/expenses.db
 node_modules/
 frontend/dist/
