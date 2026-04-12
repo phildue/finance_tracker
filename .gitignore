@@ -1,2 +1,4 @@
 *.pyc
 data/expenses.db
+node_modules/
+frontend/dist/
