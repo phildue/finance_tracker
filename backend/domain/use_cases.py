@@ -44,3 +44,11 @@ class DeleteExpense:
 
     def execute(self, id: UUID) -> None:
         self._repository.delete(id)
+
+
+class DeleteAllExpenses:
+    def __init__(self, repository: ExpenseRepository) -> None:
+        self._repository = repository
+
+    def execute(self) -> None:
+        self._repository.delete_all()
