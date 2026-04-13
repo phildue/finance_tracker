@@ -4,7 +4,7 @@ from uuid import UUID
 import pytest
 from domain.expense import Expense, ExpenseNotFound
 from domain.ports import ExpenseRepository
-from domain.use_cases import AddExpense, ListExpenses
+from domain.use_cases import AddExpense, ListExpenses, DeleteExpense
 
 
 def test_expense_stores_fields():
@@ -105,3 +105,20 @@ def test_list_expenses_returns_sorted_by_date_descending():
 def test_list_expenses_returns_empty_when_no_expenses():
     repo = FakeExpenseRepository()
     assert ListExpenses(repo).execute() == []
+
+
+def test_delete_expense_removes_it_from_repository():
+    repo = FakeExpenseRepository()
+    add = AddExpense(repo)
+    expense = add.execute(Decimal("10"), "EUR", "food", date(2026, 4, 11))
+
+    DeleteExpense(repo).execute(expense.id)
+
+    assert repo.list_all() == []
+
+
+def test_delete_expense_raises_when_not_found():
+    repo = FakeExpenseRepository()
+    import uuid
+    with pytest.raises(ExpenseNotFound):
+        DeleteExpense(repo).execute(uuid.uuid4())
