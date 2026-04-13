@@ -1,4 +1,8 @@
+import subprocess
+import time
+
 import httpx
+import pytest
 
 
 def test_health(base_url):
@@ -51,3 +55,42 @@ def test_validation_rejects_zero_amount(base_url):
         json={"amount": "0", "currency": "EUR", "category": "food", "date": "2026-04-12"},
     )
     assert r.status_code == 422
+
+
+def test_data_persists_across_backend_restart(base_url, repo_root):
+    """Expense written to SQLite must survive a backend container restart.
+
+    Regression test for: /data directory not writable by container user (UID 1000)
+    causes sqlite3.OperationalError at startup, crashing the backend so that
+    nginx returns 502 on every request — including POST /expenses.
+    """
+    r = httpx.post(
+        f"{base_url}/expenses",
+        json={"amount": "7.77", "currency": "EUR", "category": "sys-test-persist", "date": "2026-04-13"},
+    )
+    assert r.status_code == 201, (
+        f"POST /expenses returned {r.status_code} — backend may be crashing at startup "
+        "(check that the data directory is writable by UID 1000)"
+    )
+    expense_id = r.json()["id"]
+
+    subprocess.run(["docker", "compose", "restart", "backend"], cwd=repo_root, check=True)
+
+    deadline = time.time() + 30
+    while time.time() < deadline:
+        try:
+            if httpx.get(f"{base_url}/health", timeout=2).status_code == 200:
+                break
+        except Exception:
+            pass
+        time.sleep(1)
+    else:
+        pytest.fail(
+            "Backend did not become healthy after restart — "
+            "likely cannot open the SQLite database (check /data permissions)"
+        )
+
+    r2 = httpx.get(f"{base_url}/expenses")
+    assert r2.status_code == 200
+    assert any(e["id"] == expense_id for e in r2.json()), \
+        "Expense not found after restart — data was not persisted to disk"

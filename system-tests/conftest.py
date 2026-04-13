@@ -44,3 +44,8 @@ def base_url():
 @pytest.fixture(scope="session")
 def ui_url():
     return UI_URL
+
+
+@pytest.fixture(scope="session")
+def repo_root():
+    return REPO_ROOT
