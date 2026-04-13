@@ -61,7 +61,7 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Prepare data directory
-        run: chmod a+w data/
+        run: sudo chown 1000:1000 data/
 
       - name: Pull images
         env:
@@ -78,9 +78,9 @@ jobs:
     needs: [build, system-test]
     if: ${{ needs.build.result == 'success' && needs.system-test.result == 'success' }}
     steps:
+      - uses: actions/checkout@v4
+
       - name: Deploy to test
-        run: |
-          ssh -i ~/.ssh/deploy_key \
-              -o StrictHostKeyChecking=accept-new \
-              "${{ secrets.DEPLOY_TEST_TARGET }}" \
-              "cd /opt/finance_tracker && echo IMAGE_TAG=sha-${{ needs.build.outputs.sha }} > .env && docker compose pull && docker compose up -d"
+        env:
+          SSH_KEY: ~/.ssh/deploy_key
+        run: ./deploy.sh "${{ secrets.DEPLOY_TEST_TARGET }}" "sha-${{ needs.build.outputs.sha }}"
