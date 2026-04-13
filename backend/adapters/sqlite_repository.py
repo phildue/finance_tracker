@@ -3,7 +3,7 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
-from domain.expense import Expense
+from domain.expense import Expense, ExpenseNotFound
 from domain.ports import ExpenseRepository
 
 
@@ -63,7 +63,13 @@ class SqliteExpenseRepository(ExpenseRepository):
         ]
 
     def delete(self, id: UUID) -> None:
-        raise NotImplementedError
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "DELETE FROM expenses WHERE id = ?", (str(id),)
+            )
+            if cursor.rowcount == 0:
+                raise ExpenseNotFound(id)
 
     def delete_all(self) -> None:
-        raise NotImplementedError
+        with self._connect() as conn:
+            conn.execute("DELETE FROM expenses")
