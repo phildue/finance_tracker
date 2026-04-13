@@ -1,7 +1,8 @@
 from datetime import date
 from decimal import Decimal
+from uuid import UUID
 import pytest
-from domain.expense import Expense
+from domain.expense import Expense, ExpenseNotFound
 from domain.ports import ExpenseRepository
 from domain.use_cases import AddExpense, ListExpenses
 
@@ -48,6 +49,15 @@ class FakeExpenseRepository(ExpenseRepository):
 
     def list_all(self) -> list[Expense]:
         return list(self._expenses)
+
+    def delete(self, id: UUID) -> None:
+        match = [e for e in self._expenses if e.id == id]
+        if not match:
+            raise ExpenseNotFound(id)
+        self._expenses = [e for e in self._expenses if e.id != id]
+
+    def delete_all(self) -> None:
+        self._expenses = []
 
 
 def test_add_expense_returns_saved_expense():

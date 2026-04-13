@@ -17,3 +17,7 @@ class Expense:
     def __post_init__(self) -> None:
         if self.amount <= 0:
             raise ValueError("amount must be positive")
+
+
+class ExpenseNotFound(Exception):
+    pass

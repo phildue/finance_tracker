@@ -61,3 +61,9 @@ class SqliteExpenseRepository(ExpenseRepository):
             )
             for row in rows
         ]
+
+    def delete(self, id: UUID) -> None:
+        raise NotImplementedError
+
+    def delete_all(self) -> None:
+        raise NotImplementedError
