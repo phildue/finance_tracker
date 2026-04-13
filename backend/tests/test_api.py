@@ -6,7 +6,7 @@ from domain.expense import Expense, ExpenseNotFound
 from adapters.sqlite_repository import SqliteExpenseRepository
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from domain.use_cases import AddExpense, ListExpenses, DeleteExpense, DeleteAllExpenses
+from domain.use_cases import AddExpense, ListExpenses
 from adapters.api.routes import build_router
 
 
