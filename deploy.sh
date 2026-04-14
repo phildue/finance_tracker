@@ -23,8 +23,14 @@ else
     remote_ssh "$REMOTE" "mkdir -p '$REMOTE_DIR/data' && chown 1000:1000 '$REMOTE_DIR/data'"
 
     if [ -n "$IMAGE_TAG" ]; then
-        # CI path: images are already in the registry — just pull and restart.
-        remote_ssh "$REMOTE" "cd '$REMOTE_DIR' && echo IMAGE_TAG=$IMAGE_TAG > .env && docker compose pull && docker compose up -d"
+        # CI path: images are already in the registry — pull and restart.
+        # Use docker pull directly because docker compose pull skips services
+        # that have a build: stanza (treating them as buildable rather than pullable).
+        remote_ssh "$REMOTE" "
+            docker pull ghcr.io/phildue/finance_tracker/backend:$IMAGE_TAG &&
+            docker pull ghcr.io/phildue/finance_tracker/frontend:$IMAGE_TAG &&
+            cd '$REMOTE_DIR' && echo IMAGE_TAG=$IMAGE_TAG > .env && docker compose up -d
+        "
     else
         # Manual path: build from the current working tree.
         rsync -az -e "ssh ${SSH_ARGS[*]}" \
