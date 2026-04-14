@@ -10,6 +10,7 @@ function App() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const fetchExpenses = useCallback(async () => {
+    setDeleteError(null)
     try {
       const data = await listExpenses()
       setExpenses(data)
