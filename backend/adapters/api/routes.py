@@ -74,9 +74,9 @@ def build_router(
 
     @router.delete("/expenses/bulk", status_code=204)
     def delete_expenses_bulk(body: BulkDeleteRequest) -> None:
-        for id in body.ids:
+        for expense_id in body.ids:
             try:
-                delete_expense.execute(id)
+                delete_expense.execute(expense_id)
             except ExpenseNotFound:
                 pass
 
