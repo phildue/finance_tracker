@@ -34,3 +34,28 @@ export async function listExpenses(): Promise<Expense[]> {
   }
   return response.json()
 }
+
+export async function deleteExpense(id: string): Promise<void> {
+  const response = await fetch(`/expenses/${id}`, { method: 'DELETE' })
+  if (!response.ok) {
+    throw new Error(`Failed to delete expense: ${response.status}`)
+  }
+}
+
+export async function deleteExpenses(ids: string[]): Promise<void> {
+  const response = await fetch('/expenses/bulk', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  })
+  if (!response.ok) {
+    throw new Error(`Failed to delete expenses: ${response.status}`)
+  }
+}
+
+export async function deleteAllExpenses(): Promise<void> {
+  const response = await fetch('/expenses', { method: 'DELETE' })
+  if (!response.ok) {
+    throw new Error(`Failed to delete all expenses: ${response.status}`)
+  }
+}
