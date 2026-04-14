@@ -94,3 +94,65 @@ def test_data_persists_across_backend_restart(base_url, repo_root):
     assert r2.status_code == 200
     assert any(e["id"] == expense_id for e in r2.json()), \
         "Expense not found after restart — data was not persisted to disk"
+
+
+def test_delete_expense(base_url):
+    r = httpx.post(
+        f"{base_url}/expenses",
+        json={"amount": "9.99", "currency": "EUR", "category": "sys-test-delete-one", "date": "2026-04-14"},
+    )
+    assert r.status_code == 201
+    expense_id = r.json()["id"]
+
+    r2 = httpx.delete(f"{base_url}/expenses/{expense_id}")
+    assert r2.status_code == 204
+
+    items = httpx.get(f"{base_url}/expenses").json()
+    assert not any(e["id"] == expense_id for e in items), "Deleted expense still present in list"
+
+
+def test_delete_expense_not_found(base_url):
+    import uuid
+    r = httpx.delete(f"{base_url}/expenses/{uuid.uuid4()}")
+    assert r.status_code == 404
+
+
+def test_delete_bulk(base_url):
+    id1 = httpx.post(
+        f"{base_url}/expenses",
+        json={"amount": "1.00", "currency": "EUR", "category": "sys-test-bulk-a", "date": "2026-04-14"},
+    ).json()["id"]
+    id2 = httpx.post(
+        f"{base_url}/expenses",
+        json={"amount": "2.00", "currency": "EUR", "category": "sys-test-bulk-b", "date": "2026-04-14"},
+    ).json()["id"]
+    httpx.post(
+        f"{base_url}/expenses",
+        json={"amount": "3.00", "currency": "EUR", "category": "sys-test-bulk-c", "date": "2026-04-14"},
+    )
+
+    r = httpx.request("DELETE", f"{base_url}/expenses/bulk", json={"ids": [id1, id2]})
+    assert r.status_code == 204
+
+    items = httpx.get(f"{base_url}/expenses").json()
+    ids = [e["id"] for e in items]
+    assert id1 not in ids, "sys-test-bulk-a still present after bulk delete"
+    assert id2 not in ids, "sys-test-bulk-b still present after bulk delete"
+    assert any(e["category"] == "sys-test-bulk-c" for e in items), "sys-test-bulk-c was incorrectly deleted"
+
+
+def test_delete_all(base_url):
+    httpx.post(
+        f"{base_url}/expenses",
+        json={"amount": "5.00", "currency": "EUR", "category": "sys-test-delete-all-a", "date": "2026-04-14"},
+    )
+    httpx.post(
+        f"{base_url}/expenses",
+        json={"amount": "6.00", "currency": "EUR", "category": "sys-test-delete-all-b", "date": "2026-04-14"},
+    )
+
+    r = httpx.delete(f"{base_url}/expenses")
+    assert r.status_code == 204
+
+    items = httpx.get(f"{base_url}/expenses").json()
+    assert items == [], f"Expected empty list after delete-all, got {len(items)} items"

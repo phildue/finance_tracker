@@ -21,3 +21,44 @@ def test_form_rejects_empty_submission(page, ui_url):
     page.click('button[type="submit"]')
     page.wait_for_timeout(500)
     assert page.locator("tbody tr").count() == initial_row_count
+
+
+def test_delete_selected_expense(page, ui_url):
+    page.goto(ui_url)
+    page.wait_for_load_state("networkidle")
+
+    page.fill("#amount", "33.33")
+    page.fill("#currency", "EUR")
+    page.fill("#category", "sys-test-ui-delete-selected")
+    page.fill("#date", "2026-04-14")
+    page.click('button[type="submit"]')
+    page.wait_for_selector('td:has-text("sys-test-ui-delete-selected")')
+
+    row = page.locator("tbody tr", has=page.locator('td:has-text("sys-test-ui-delete-selected")'))
+    row.locator('input[type="checkbox"]').check()
+    page.wait_for_selector('button:has-text("Delete selected")')
+
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.click('button:has-text("Delete selected")')
+    page.wait_for_timeout(500)
+
+    assert page.locator('td:has-text("sys-test-ui-delete-selected")').count() == 0
+
+
+def test_delete_all_via_toolbar(page, ui_url):
+    page.goto(ui_url)
+    page.wait_for_load_state("networkidle")
+
+    page.fill("#amount", "44.44")
+    page.fill("#currency", "EUR")
+    page.fill("#category", "sys-test-ui-delete-all")
+    page.fill("#date", "2026-04-14")
+    page.click('button[type="submit"]')
+    page.wait_for_selector('td:has-text("sys-test-ui-delete-all")')
+
+    page.locator("tbody input[type='checkbox']").first.check()
+    page.wait_for_selector('button:has-text("Delete all")')
+
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.click('button:has-text("Delete all")')
+    page.wait_for_selector('p:has-text("No expenses yet")')
