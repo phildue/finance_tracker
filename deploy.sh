@@ -23,9 +23,11 @@ else
     remote_ssh "$REMOTE" "mkdir -p '$REMOTE_DIR/data' && chown 1000:1000 '$REMOTE_DIR/data'"
 
     if [ -n "$IMAGE_TAG" ]; then
-        # CI path: images are already in the registry — pull and restart.
+        # CI path: images are already in the registry — sync config, pull, restart.
+        # Sync compose file first so the server is never behind on infra config.
         # Use docker pull directly because docker compose pull skips services
         # that have a build: stanza (treating them as buildable rather than pullable).
+        rsync -az -e "ssh ${SSH_ARGS[*]}" docker-compose.yml "$REMOTE:$REMOTE_DIR/docker-compose.yml"
         remote_ssh "$REMOTE" "
             docker pull ghcr.io/phildue/finance_tracker/backend:$IMAGE_TAG &&
             docker pull ghcr.io/phildue/finance_tracker/frontend:$IMAGE_TAG &&
