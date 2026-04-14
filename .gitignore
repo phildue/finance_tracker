@@ -4,3 +4,5 @@ __pycache__/
 data/expenses.db
 node_modules/
 frontend/dist/
+.superpowers/
+.worktrees/

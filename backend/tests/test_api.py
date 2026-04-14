@@ -1,11 +1,12 @@
 import pytest
 from decimal import Decimal
 from datetime import date
-from domain.expense import Expense
+import uuid
+from domain.expense import Expense, ExpenseNotFound
 from adapters.sqlite_repository import SqliteExpenseRepository
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from domain.use_cases import AddExpense, ListExpenses
+from domain.use_cases import AddExpense, ListExpenses, DeleteExpense, DeleteAllExpenses
 from adapters.api.routes import build_router
 
 
@@ -45,7 +46,12 @@ def client(tmp_path):
     db_path = str(tmp_path / "api_test.db")
     repository = SqliteExpenseRepository(db_path)
     app = FastAPI()
-    app.include_router(build_router(AddExpense(repository), ListExpenses(repository)))
+    app.include_router(build_router(
+        AddExpense(repository),
+        ListExpenses(repository),
+        DeleteExpense(repository),
+        DeleteAllExpenses(repository),
+    ))
     return TestClient(app)
 
 
@@ -116,3 +122,68 @@ def test_health_returns_ok(client):
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_sqlite_repo_delete_removes_expense(repo):
+    expense = Expense(
+        amount=Decimal("10"),
+        currency="EUR",
+        category="food",
+        date=date(2026, 4, 11),
+    )
+    repo.save(expense)
+    repo.delete(expense.id)
+    assert repo.list_all() == []
+
+
+def test_sqlite_repo_delete_raises_when_not_found(repo):
+    with pytest.raises(ExpenseNotFound):
+        repo.delete(uuid.uuid4())
+
+
+def test_sqlite_repo_delete_all_empties_table(repo):
+    repo.save(Expense(amount=Decimal("10"), currency="EUR", category="a", date=date(2026, 4, 11)))
+    repo.save(Expense(amount=Decimal("20"), currency="EUR", category="b", date=date(2026, 4, 12)))
+    repo.delete_all()
+    assert repo.list_all() == []
+
+
+def test_delete_expense_returns_204(client):
+    post = client.post(
+        "/expenses",
+        json={"amount": "10", "currency": "EUR", "category": "food", "date": "2026-04-11"},
+    )
+    expense_id = post.json()["id"]
+
+    response = client.delete(f"/expenses/{expense_id}")
+
+    assert response.status_code == 204
+    assert client.get("/expenses").json() == []
+
+
+def test_delete_expense_returns_404_when_not_found(client):
+    response = client.delete(f"/expenses/{uuid.uuid4()}")
+    assert response.status_code == 404
+
+
+def test_delete_bulk_returns_204(client):
+    id1 = client.post("/expenses", json={"amount": "10", "currency": "EUR", "category": "a", "date": "2026-04-11"}).json()["id"]
+    id2 = client.post("/expenses", json={"amount": "20", "currency": "EUR", "category": "b", "date": "2026-04-12"}).json()["id"]
+    client.post("/expenses", json={"amount": "5", "currency": "EUR", "category": "c", "date": "2026-04-13"})
+
+    response = client.request("DELETE", "/expenses/bulk", json={"ids": [id1, id2]})
+
+    assert response.status_code == 204
+    remaining = client.get("/expenses").json()
+    assert len(remaining) == 1
+    assert remaining[0]["category"] == "c"
+
+
+def test_delete_all_returns_204(client):
+    client.post("/expenses", json={"amount": "10", "currency": "EUR", "category": "a", "date": "2026-04-11"})
+    client.post("/expenses", json={"amount": "20", "currency": "EUR", "category": "b", "date": "2026-04-12"})
+
+    response = client.delete("/expenses")
+
+    assert response.status_code == 204
+    assert client.get("/expenses").json() == []

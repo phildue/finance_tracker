@@ -7,8 +7,10 @@ import { ExpenseList } from './components/ExpenseList'
 function App() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [fetchError, setFetchError] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const fetchExpenses = useCallback(async () => {
+    setDeleteError(null)
     try {
       const data = await listExpenses()
       setExpenses(data)
@@ -29,7 +31,12 @@ function App() {
       <ExpenseForm onExpenseAdded={fetchExpenses} />
       <h2>Expenses</h2>
       {fetchError && <p style={{ color: 'red' }}>{fetchError}</p>}
-      <ExpenseList expenses={expenses} />
+      {deleteError && <p style={{ color: 'red' }}>{deleteError}</p>}
+      <ExpenseList
+        expenses={expenses}
+        onDeleted={fetchExpenses}
+        onDeleteError={setDeleteError}
+      />
     </div>
   )
 }

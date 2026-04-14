@@ -1,9 +1,11 @@
 from datetime import date
 from decimal import Decimal
+import uuid
+from uuid import UUID
 import pytest
-from domain.expense import Expense
+from domain.expense import Expense, ExpenseNotFound
 from domain.ports import ExpenseRepository
-from domain.use_cases import AddExpense, ListExpenses
+from domain.use_cases import AddExpense, ListExpenses, DeleteExpense, DeleteAllExpenses
 
 
 def test_expense_stores_fields():
@@ -48,6 +50,15 @@ class FakeExpenseRepository(ExpenseRepository):
 
     def list_all(self) -> list[Expense]:
         return list(self._expenses)
+
+    def delete(self, id: UUID) -> None:
+        match = [e for e in self._expenses if e.id == id]
+        if not match:
+            raise ExpenseNotFound(id)
+        self._expenses = [e for e in self._expenses if e.id != id]
+
+    def delete_all(self) -> None:
+        self._expenses = []
 
 
 def test_add_expense_returns_saved_expense():
@@ -95,3 +106,30 @@ def test_list_expenses_returns_sorted_by_date_descending():
 def test_list_expenses_returns_empty_when_no_expenses():
     repo = FakeExpenseRepository()
     assert ListExpenses(repo).execute() == []
+
+
+def test_delete_expense_removes_it_from_repository():
+    repo = FakeExpenseRepository()
+    add = AddExpense(repo)
+    expense = add.execute(Decimal("10"), "EUR", "food", date(2026, 4, 11))
+
+    DeleteExpense(repo).execute(expense.id)
+
+    assert repo.list_all() == []
+
+
+def test_delete_expense_raises_when_not_found():
+    repo = FakeExpenseRepository()
+    with pytest.raises(ExpenseNotFound):
+        DeleteExpense(repo).execute(uuid.uuid4())
+
+
+def test_delete_all_expenses_empties_repository():
+    repo = FakeExpenseRepository()
+    add = AddExpense(repo)
+    add.execute(Decimal("10"), "EUR", "food", date(2026, 4, 11))
+    add.execute(Decimal("20"), "EUR", "transport", date(2026, 4, 12))
+
+    DeleteAllExpenses(repo).execute()
+
+    assert repo.list_all() == []

@@ -3,11 +3,11 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, field_validator
 
-from domain.expense import Expense
-from domain.use_cases import AddExpense, ListExpenses
+from domain.expense import Expense, ExpenseNotFound
+from domain.use_cases import AddExpense, ListExpenses, DeleteExpense, DeleteAllExpenses
 
 
 class CreateExpenseRequest(BaseModel):
@@ -34,6 +34,10 @@ class ExpenseResponse(BaseModel):
     description: Optional[str]
 
 
+class BulkDeleteRequest(BaseModel):
+    ids: list[UUID]
+
+
 def _to_response(expense: Expense) -> ExpenseResponse:
     return ExpenseResponse(
         id=expense.id,
@@ -45,7 +49,12 @@ def _to_response(expense: Expense) -> ExpenseResponse:
     )
 
 
-def build_router(add_expense: AddExpense, list_expenses: ListExpenses) -> APIRouter:
+def build_router(
+    add_expense: AddExpense,
+    list_expenses: ListExpenses,
+    delete_expense: DeleteExpense,
+    delete_all_expenses: DeleteAllExpenses,
+) -> APIRouter:
     router = APIRouter()
 
     @router.post("/expenses", response_model=ExpenseResponse, status_code=201)
@@ -62,6 +71,25 @@ def build_router(add_expense: AddExpense, list_expenses: ListExpenses) -> APIRou
     @router.get("/expenses", response_model=list[ExpenseResponse])
     def get_expenses() -> list[ExpenseResponse]:
         return [_to_response(e) for e in list_expenses.execute()]
+
+    @router.delete("/expenses/bulk", status_code=204)
+    def delete_expenses_bulk(body: BulkDeleteRequest) -> None:
+        for expense_id in body.ids:
+            try:
+                delete_expense.execute(expense_id)
+            except ExpenseNotFound:
+                pass
+
+    @router.delete("/expenses/{id}", status_code=204)
+    def delete_expense_by_id(id: UUID) -> None:
+        try:
+            delete_expense.execute(id)
+        except ExpenseNotFound:
+            raise HTTPException(status_code=404, detail="Expense not found")
+
+    @router.delete("/expenses", status_code=204)
+    def delete_all() -> None:
+        delete_all_expenses.execute()
 
     @router.get("/health")
     def health() -> dict:

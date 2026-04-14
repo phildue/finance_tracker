@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from uuid import UUID
 from .expense import Expense
 
 
@@ -8,3 +9,9 @@ class ExpenseRepository(ABC):
 
     @abstractmethod
     def list_all(self) -> list[Expense]: ...
+
+    @abstractmethod
+    def delete(self, id: UUID) -> None: ...
+
+    @abstractmethod
+    def delete_all(self) -> None: ...
