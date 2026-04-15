@@ -61,10 +61,14 @@ export async function deleteAllExpenses(): Promise<void> {
 }
 
 export async function getVersion(): Promise<string> {
-  const response = await fetch('/version')
-  if (!response.ok) {
+  try {
+    const response = await fetch('/version')
+    if (!response.ok) {
+      return 'unknown'
+    }
+    const data = await response.json()
+    return data.version
+  } catch {
     return 'unknown'
   }
-  const data = await response.json()
-  return data.version
 }
