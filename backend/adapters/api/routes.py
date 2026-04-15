@@ -95,4 +95,9 @@ def build_router(
     def health() -> dict:
         return {"status": "ok"}
 
+    @router.get("/version")
+    def version() -> dict:
+        import os
+        return {"version": os.environ.get("APP_VERSION", "dev")}
+
     return router
