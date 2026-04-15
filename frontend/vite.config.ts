@@ -6,6 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/expenses': 'http://localhost:8000',
+      '/version': 'http://localhost:8000',
     },
   },
 })

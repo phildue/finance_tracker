@@ -10,6 +10,7 @@ services:
     user: "1000:1000"
     environment:
       - DB_PATH=/data/expenses.db
+      - APP_VERSION=${APP_VERSION:-dev}
     volumes:
       - ./data:/data
     restart: unless-stopped

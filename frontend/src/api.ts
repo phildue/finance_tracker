@@ -59,3 +59,12 @@ export async function deleteAllExpenses(): Promise<void> {
     throw new Error(`Failed to delete all expenses: ${response.status}`)
   }
 }
+
+export async function getVersion(): Promise<string> {
+  const response = await fetch('/version')
+  if (!response.ok) {
+    return 'unknown'
+  }
+  const data = await response.json()
+  return data.version
+}

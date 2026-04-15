@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { listExpenses } from './api'
+import { listExpenses, getVersion } from './api'
 import type { Expense } from './api'
 import { ExpenseForm } from './components/ExpenseForm'
 import { ExpenseList } from './components/ExpenseList'
@@ -8,6 +8,7 @@ function App() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [version, setVersion] = useState<string | null>(null)
 
   const fetchExpenses = useCallback(async () => {
     setDeleteError(null)
@@ -22,6 +23,7 @@ function App() {
 
   useEffect(() => {
     fetchExpenses()
+    getVersion().then(setVersion)
   }, [fetchExpenses])
 
   return (
@@ -37,6 +39,11 @@ function App() {
         onDeleted={fetchExpenses}
         onDeleteError={setDeleteError}
       />
+      {version !== null && (
+        <footer style={{ marginTop: '2rem', color: '#888', fontSize: '0.8rem', textAlign: 'center' }}>
+          version: {version}
+        </footer>
+      )}
     </div>
   )
 }

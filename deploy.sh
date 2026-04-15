@@ -29,7 +29,7 @@ else
         remote_ssh "$REMOTE" "
             docker pull ghcr.io/phildue/finance_tracker/backend:$IMAGE_TAG &&
             docker pull ghcr.io/phildue/finance_tracker/frontend:$IMAGE_TAG &&
-            cd '$REMOTE_DIR' && echo IMAGE_TAG=$IMAGE_TAG > .env && docker compose up -d --force-recreate
+            cd '$REMOTE_DIR' && printf 'IMAGE_TAG=%s\nAPP_VERSION=%s\n' '$IMAGE_TAG' '$IMAGE_TAG' > .env && docker compose up -d --force-recreate
         "
     else
         # Manual path: build from the current working tree.
