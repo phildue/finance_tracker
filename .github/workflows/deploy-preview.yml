@@ -1,0 +1,92 @@
+name: PR Preview
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, closed]
+
+concurrency:
+  group: preview-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    if: github.event.action != 'closed'
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute preview port
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: echo "PREVIEW_PORT=$((8000 + PR_NUMBER))" >> $GITHUB_ENV
+
+      - name: Sync source to server
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DEPLOY_TARGET: ${{ secrets.DEPLOY_TEST_TARGET }}
+        run: |
+          rsync -az \
+            -e "ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key" \
+            --exclude='.git/' \
+            --exclude='data/' \
+            --exclude='node_modules/' \
+            --exclude='__pycache__/' \
+            --exclude='frontend/dist/' \
+            . "${DEPLOY_TARGET}:/opt/finance_tracker_pr_${PR_NUMBER}/"
+
+      - name: Prepare data directory
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DEPLOY_TARGET: ${{ secrets.DEPLOY_TEST_TARGET }}
+        run: |
+          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key \
+            "${DEPLOY_TARGET}" \
+            "mkdir -p /opt/finance_tracker_pr_${PR_NUMBER}/data && chown 1000:1000 /opt/finance_tracker_pr_${PR_NUMBER}/data"
+
+      - name: Deploy preview stack
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DEPLOY_TARGET: ${{ secrets.DEPLOY_TEST_TARGET }}
+        run: |
+          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key \
+            "${DEPLOY_TARGET}" \
+            "cd /opt/finance_tracker_pr_${PR_NUMBER} && FRONTEND_PORT=${PREVIEW_PORT} docker compose -p pr-${PR_NUMBER} up -d --build"
+
+      - name: Post preview URL comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_TEST_HOST }}
+        run: |
+          gh pr comment "${PR_NUMBER}" \
+            --repo "${REPO}" \
+            --body "Preview deployed: http://${DEPLOY_HOST}:${PREVIEW_PORT}" \
+            --edit-last --create-if-none
+
+  teardown-preview:
+    if: github.event.action == 'closed'
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tear down preview stack
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DEPLOY_TARGET: ${{ secrets.DEPLOY_TEST_TARGET }}
+        run: |
+          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key \
+            "${DEPLOY_TARGET}" \
+            "docker compose -p pr-${PR_NUMBER} down --volumes || true; rm -rf /opt/finance_tracker_pr_${PR_NUMBER}"
+
+      - name: Post teardown comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr comment "${PR_NUMBER}" \
+            --repo "${REPO}" \
+            --body "Preview instance torn down." \
+            --edit-last --create-if-none
