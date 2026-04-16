@@ -37,8 +37,8 @@ The default remains `80`, so the existing test deployment is unaffected.
 1. Checkout PR branch source
 2. `rsync` to `/opt/finance_tracker_pr_<N>/` on the test server (exclude `.git/`, `data/`, `node_modules/`, `__pycache__/`, `frontend/dist/`)
 3. SSH: `mkdir -p data && chown 1000:1000 data`
-4. SSH: `FRONTEND_PORT=8<N> IMAGE_TAG=local docker compose -p pr-<N> up -d --build`
-5. Post PR comment (create if none, edit if exists): `"Preview deployed: http://<host>:8<N>"`
+4. SSH: `FRONTEND_PORT=$((8000 + N)) IMAGE_TAG=local docker compose -p pr-<N> up -d --build`
+5. Post PR comment (create if none, edit if exists): `"Preview deployed: http://<host>:$((8000 + N))"`
 
 **Teardown job** (runs on close):
 
