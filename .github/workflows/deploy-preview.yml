@@ -60,10 +60,11 @@ jobs:
           REPO: ${{ github.repository }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_TEST_HOST }}
         run: |
-          gh pr comment "${PR_NUMBER}" \
-            --repo "${REPO}" \
-            --body "Preview deployed: http://${DEPLOY_HOST}:${PREVIEW_PORT}" \
-            --edit-last --create-if-none
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${REPO}/issues/${PR_NUMBER}/comments" \
+            -d "{\"body\":\"Preview deployed: http://${DEPLOY_HOST}:${PREVIEW_PORT}\"}"
 
   teardown-preview:
     if: github.event.action == 'closed'
@@ -86,7 +87,8 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
         run: |
-          gh pr comment "${PR_NUMBER}" \
-            --repo "${REPO}" \
-            --body "Preview instance torn down." \
-            --edit-last --create-if-none
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${REPO}/issues/${PR_NUMBER}/comments" \
+            -d '{"body":"Preview instance torn down."}'
