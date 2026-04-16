@@ -1,0 +1,67 @@
+name: PR Preview
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, closed]
+
+jobs:
+  deploy-preview:
+    if: github.event.action != 'closed'
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute preview port
+        run: echo "PREVIEW_PORT=$((8000 + ${{ github.event.pull_request.number }}))" >> $GITHUB_ENV
+
+      - name: Sync source to server
+        run: |
+          rsync -az \
+            -e "ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key" \
+            --exclude='.git/' \
+            --exclude='data/' \
+            --exclude='node_modules/' \
+            --exclude='__pycache__/' \
+            --exclude='frontend/dist/' \
+            . "${{ secrets.DEPLOY_TEST_TARGET }}:/opt/finance_tracker_pr_${{ github.event.pull_request.number }}/"
+
+      - name: Prepare data directory
+        run: |
+          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key \
+            "${{ secrets.DEPLOY_TEST_TARGET }}" \
+            "mkdir -p /opt/finance_tracker_pr_${{ github.event.pull_request.number }}/data && chown 1000:1000 /opt/finance_tracker_pr_${{ github.event.pull_request.number }}/data"
+
+      - name: Deploy preview stack
+        run: |
+          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key \
+            "${{ secrets.DEPLOY_TEST_TARGET }}" \
+            "cd /opt/finance_tracker_pr_${{ github.event.pull_request.number }} && FRONTEND_PORT=${{ env.PREVIEW_PORT }} IMAGE_TAG=local docker compose -p pr-${{ github.event.pull_request.number }} up -d --build"
+
+      - name: Post preview URL comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --body "Preview deployed: http://${{ secrets.DEPLOY_TEST_HOST }}:${{ env.PREVIEW_PORT }}" \
+            --edit-last --create-if-none
+
+  teardown-preview:
+    if: github.event.action == 'closed'
+    runs-on: self-hosted
+    steps:
+      - name: Tear down preview stack
+        run: |
+          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key \
+            "${{ secrets.DEPLOY_TEST_TARGET }}" \
+            "docker compose -p pr-${{ github.event.pull_request.number }} down --volumes || true; rm -rf /opt/finance_tracker_pr_${{ github.event.pull_request.number }}"
+
+      - name: Post teardown comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --body "Preview instance torn down." \
+            --edit-last --create-if-none
