@@ -1,9 +1,11 @@
 name: PR Preview
 
 on:
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened, closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to preview-deploy (manual trigger only -- auto-deploy on fork PRs disabled 2026-08-02 after a security review found untrusted PR code could reach a real internal server via this workflow)"
+        required: true
 
 concurrency:
   group: preview-pr-${{ github.event.pull_request.number }}
